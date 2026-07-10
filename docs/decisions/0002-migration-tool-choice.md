@@ -6,8 +6,8 @@ Date: 2026-07-10
 ## Context
 The schema is a handful of tables (`jobs`, `schedules`, `completions`) plus generated columns,
 partial unique indexes, and (later) a trigger for `pg_notify`. All of it is raw SQL by project
-ethos — there's no ORM anywhere in this stack (see [[0004-raw-pg-vs-query-builder]] once
-written, or `packages/core`'s db layer). A migration tool is still needed for tracking which
+ethos — there's no ORM anywhere in this stack (see `packages/core`'s db layer, hand-written
+`pg` queries throughout). A migration tool is still needed for tracking which
 migrations have run against a given database and for reversible up/down pairs.
 
 This exact tradeoff was already worked through on the sibling `feature-flag-service` project

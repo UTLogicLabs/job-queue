@@ -16,7 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "vitest run --project unit --project dashboard",
-    "test:integration": "vitest run --project integration",
+    "test:integration": "vitest run --project integration --no-file-parallelism",
     "migrate": "dotenv -e .env -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up",
     "migrate:test": "dotenv -e .env.test -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up"
   },
