@@ -27,5 +27,9 @@ export async function claimJobs(pool: Pool, options: ClaimOptions): Promise<Job[
     [queues, batchSize, workerId]
   );
 
-  return result.rows.map(mapJobRow);
+  // UPDATE ... FROM ... RETURNING does not guarantee the CTE's ORDER BY is preserved in the
+  // output, so re-sort here to uphold the priority-desc, run_at-asc contract for callers.
+  return result.rows
+    .map(mapJobRow)
+    .sort((a, b) => b.priority - a.priority || a.runAt.getTime() - b.runAt.getTime());
 }

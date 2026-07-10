@@ -25,6 +25,14 @@ with Postgres's `jsonb::text` canonicalization), looks up the existing in-flight
 hash, and returns it with `deduped: true`. Any other insert failure (payload too large, wrong
 column type, connection error, etc.) still throws normally.
 
+There is a genuine race between the failed insert and the lookup: the conflicting job can
+transition out of `pending`/`processing` (complete, fail to dead, etc.) in that window, since
+dedupe is explicitly "only while in flight," not permanent. If the lookup finds nothing, that
+means the conflict has already cleared, so `enqueue()` retries the insert (bounded at 3
+attempts) instead of throwing — the whole point of the partial index is that once nothing is
+in flight, a new enqueue of the same `type`+`payload` is a completely ordinary, non-duplicate
+job.
+
 ## Consequences
 - Callers that don't care about dedupe can ignore `deduped` and just use `job` — enqueueing a
   duplicate is not an error from their perspective, it's "your job is already queued."

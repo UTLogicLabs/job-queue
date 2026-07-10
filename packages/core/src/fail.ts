@@ -26,15 +26,21 @@ export async function failJob(
 
   const result = await pool.query<JobRow>(
     `update jobs
-     set status = $2,
-         run_at = case when $2 = 'pending' then now() + ($3 || ' milliseconds')::interval else run_at end,
-         last_error = $4,
+     set status = $4,
+         run_at = case when $4 = 'pending' then now() + ($5 || ' milliseconds')::interval else run_at end,
+         last_error = $6,
          locked_by = null,
          locked_at = null
-     where id = $1
+     where id = $1 and locked_by = $2 and status = $3
      returning *`,
-    [jobId, willRetry ? "pending" : "dead", delayMs, errorMessage]
+    [jobId, workerId, "processing", willRetry ? "pending" : "dead", delayMs, errorMessage]
   );
+
+  if (result.rows.length === 0) {
+    throw new Error(
+      `Cannot fail job ${jobId}: lock changed concurrently (no longer processing under worker ${workerId})`
+    );
+  }
 
   return mapJobRow(result.rows[0]);
 }
