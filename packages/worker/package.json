@@ -1,0 +1,17 @@
+{
+  "name": "@job-queue/worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "node --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "@job-queue/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

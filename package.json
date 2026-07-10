@@ -1,0 +1,34 @@
+{
+  "name": "job-queue",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "workspaces": [
+    "packages/core",
+    "packages/worker",
+    "packages/scheduler",
+    "apps/dashboard"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run --project unit --project dashboard",
+    "test:integration": "vitest run --project integration",
+    "migrate": "dotenv -e .env -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up",
+    "migrate:test": "dotenv -e .env.test -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "dotenv": "^16.4.5",
+    "dotenv-cli": "^7.4.2",
+    "eslint": "^9.15.0",
+    "node-pg-migrate": "^7.6.1",
+    "pg": "^8.11.5",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^3.0.0"
+  }
+}

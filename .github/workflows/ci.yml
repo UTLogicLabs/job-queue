@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Typecheck · Lint · Test · Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: job_queue
+          POSTGRES_PASSWORD: job_queue
+          POSTGRES_DB: job_queue_test
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd "pg_isready -U job_queue"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://job_queue:job_queue@localhost:5436/job_queue_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run migrations against test database
+        run: npx node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up
+
+      - name: Unit & dashboard tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Build
+        run: npm run build
