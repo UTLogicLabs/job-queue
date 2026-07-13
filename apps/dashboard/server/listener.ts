@@ -19,6 +19,7 @@ async function start(): Promise<DashboardListenerHandle> {
 
   let client: Client;
   let stopped = false;
+  let reconnecting = false;
 
   function wireClient(c: Client): void {
     c.on("notification", (msg) => {
@@ -34,7 +35,7 @@ async function start(): Promise<DashboardListenerHandle> {
 
     c.on("error", (err) => {
       console.error("dashboard listener: pg client error", err);
-      if (!stopped) reconnect();
+      reconnect();
     });
   }
 
@@ -47,14 +48,20 @@ async function start(): Promise<DashboardListenerHandle> {
   }
 
   function reconnect(): void {
+    if (stopped || reconnecting) return;
+    reconnecting = true;
+
+    const staleClient = client;
     setTimeout(() => {
-      if (stopped) return;
+      staleClient?.end().catch(() => undefined);
       connect()
         .then((c) => {
           client = c;
+          reconnecting = false;
         })
         .catch((err) => {
           console.error("dashboard listener: reconnect failed", err);
+          reconnecting = false;
           reconnect();
         });
     }, RECONNECT_DELAY_MS);

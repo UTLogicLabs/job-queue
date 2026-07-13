@@ -67,7 +67,9 @@ export function createAggregates(pool: Pool) {
 
     return {
       queueDepth: Array.from(byQueueStatus.entries()).map(([k, count]) => {
-        const [queue, status] = k.split(":") as [string, JobStatus];
+        const separatorIndex = k.lastIndexOf(":");
+        const queue = k.slice(0, separatorIndex);
+        const status = k.slice(separatorIndex + 1) as JobStatus;
         return { queue, status, count };
       }),
       throughputPerMin: recentCompletions.length,

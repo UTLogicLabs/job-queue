@@ -16,21 +16,34 @@ export function createListenerClient(config: ClientConfig = {}): Client {
   });
 }
 
+const JOB_STATUSES: readonly JobStatus[] = [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "dead",
+];
+
+function isJobStatus(value: unknown): value is JobStatus {
+  return typeof value === "string" && (JOB_STATUSES as readonly string[]).includes(value);
+}
+
 export function parseJobEvent(payload: string): JobEvent {
   const raw = JSON.parse(payload) as Record<string, unknown>;
   if (
     typeof raw.id !== "string" ||
     typeof raw.type !== "string" ||
     typeof raw.queue !== "string" ||
-    typeof raw.status !== "string"
+    !isJobStatus(raw.status) ||
+    (raw.from !== null && raw.from !== undefined && !isJobStatus(raw.from))
   ) {
-    throw new Error(`job_events payload missing required fields: ${payload}`);
+    throw new Error(`job_events payload has missing or invalid fields: ${payload}`);
   }
   return {
     id: raw.id,
     type: raw.type,
     queue: raw.queue,
-    status: raw.status as JobStatus,
-    from: typeof raw.from === "string" ? (raw.from as JobStatus) : null,
+    status: raw.status,
+    from: isJobStatus(raw.from) ? raw.from : null,
   };
 }

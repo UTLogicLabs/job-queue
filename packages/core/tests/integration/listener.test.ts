@@ -9,14 +9,15 @@ import { truncateAll } from "./setup.js";
 
 function waitForNotification(client: Client, timeoutMs = 2000): Promise<string> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("timed out waiting for notification")),
-      timeoutMs
-    );
-    client.once("notification", (msg) => {
+    const onNotification = (msg: { payload?: string }) => {
       clearTimeout(timer);
       resolve(msg.payload ?? "");
-    });
+    };
+    const timer = setTimeout(() => {
+      client.removeListener("notification", onNotification);
+      reject(new Error("timed out waiting for notification"));
+    }, timeoutMs);
+    client.once("notification", onNotification);
   });
 }
 
