@@ -29,3 +29,12 @@ export type EnqueueResult = {
   job: Job;
   deduped: boolean;
 };
+
+export type Schedule = {
+  id: string;
+  type: string;
+  payload: unknown;
+  cronExpr: string;
+  nextRunAt: Date;
+  lastJobId: string | null;
+};
