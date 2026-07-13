@@ -13,4 +13,5 @@ export { tickScheduler, type TickResult } from "./tickScheduler.js";
 export { DuplicateCompletionError, isUniqueViolation } from "./errors.js";
 export { mapJobRow, type JobRow } from "./mapJobRow.js";
 export { mapScheduleRow, type ScheduleRow } from "./scheduleRow.js";
+export { createListenerClient, parseJobEvent, type JobEvent } from "./listener.js";
 export type { Job, JobStatus, EnqueueOptions, EnqueueResult, Schedule } from "./types.js";
