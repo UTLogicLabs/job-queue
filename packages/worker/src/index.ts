@@ -2,8 +2,17 @@ import { createPool } from "@job-queue/core";
 import { createHandlerRegistry } from "./registry.js";
 import { runWorker } from "./runWorker.js";
 
-const queues = (process.env.QUEUES ?? "default").split(",").map((q) => q.trim());
-const batchSize = Number(process.env.BATCH_SIZE ?? 10);
+const queues = (process.env.QUEUES ?? "default")
+  .split(",")
+  .map((q) => q.trim())
+  .filter((q) => q.length > 0);
+
+const batchSizeEnv = process.env.BATCH_SIZE;
+const batchSize = batchSizeEnv === undefined ? 10 : Number(batchSizeEnv);
+if (!Number.isInteger(batchSize) || batchSize < 1) {
+  throw new Error(`BATCH_SIZE must be a positive integer, got "${batchSizeEnv}"`);
+}
+
 const workerId = process.env.WORKER_ID ?? `worker-${process.pid}`;
 
 const pool = createPool();

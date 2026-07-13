@@ -31,4 +31,20 @@ describe("runWithConcurrency", () => {
   it("handles an empty item list without error", async () => {
     await expect(runWithConcurrency([], 5, async () => {})).resolves.toBeUndefined();
   });
+
+  it("rejects instead of silently dropping work when concurrency is NaN", async () => {
+    const seen: number[] = [];
+    await expect(
+      runWithConcurrency([1, 2, 3], Number.NaN, async (item) => {
+        seen.push(item);
+      })
+    ).rejects.toThrow(/concurrency must be a finite number/);
+    expect(seen).toEqual([]);
+  });
+
+  it("rejects a non-positive concurrency", async () => {
+    await expect(runWithConcurrency([1, 2, 3], 0, async () => {})).rejects.toThrow(
+      /concurrency must be a finite number/
+    );
+  });
 });

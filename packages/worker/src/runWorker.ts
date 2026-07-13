@@ -38,6 +38,16 @@ export function runWorker(
     reapThresholdMs = 30_000,
   } = options;
 
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error(`runWorker: batchSize must be a positive integer, got ${batchSize}`);
+  }
+  if (!Number.isInteger(concurrency) || concurrency < 1) {
+    throw new Error(`runWorker: concurrency must be a positive integer, got ${concurrency}`);
+  }
+  if (queues.length === 0) {
+    throw new Error("runWorker: queues must contain at least one queue name");
+  }
+
   let stopped = false;
 
   async function processJob(job: Job): Promise<void> {

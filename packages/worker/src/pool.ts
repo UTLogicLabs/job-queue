@@ -5,6 +5,10 @@ export async function runWithConcurrency<T>(
   concurrency: number,
   fn: (item: T) => Promise<void>
 ): Promise<void> {
+  if (!Number.isFinite(concurrency) || concurrency < 1) {
+    throw new Error(`concurrency must be a finite number >= 1, got ${concurrency}`);
+  }
+
   let index = 0;
 
   async function worker(): Promise<void> {
@@ -14,6 +18,6 @@ export async function runWithConcurrency<T>(
     }
   }
 
-  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+  const workerCount = Math.max(1, Math.min(Math.floor(concurrency), items.length));
   await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
