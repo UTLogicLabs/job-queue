@@ -49,7 +49,11 @@ export async function tickScheduler(pool: Pool, limit = 100): Promise<TickResult
         continue;
       }
 
-      const { job } = await enqueue(pool, schedule.type, schedule.payload);
+      // Enqueue via the same client/transaction holding this schedule row's lock, so the
+      // job insert and the schedule's own advance (below) commit or roll back together —
+      // if the transaction fails to commit, the job insert is undone right along with it,
+      // instead of leaving an orphaned job with no corresponding schedule advancement.
+      const { job } = await enqueue(client, schedule.type, schedule.payload);
       const nextRunAt = computeNextRunAt(schedule.cronExpr, schedule.nextRunAt);
 
       await client.query(`update schedules set next_run_at = $2, last_job_id = $3 where id = $1`, [

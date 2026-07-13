@@ -94,6 +94,26 @@ describe("tickScheduler (integration)", () => {
     expect(result).toEqual({ enqueued: 0, skipped: 0 });
   });
 
+  it("rolls back the job insert if a later step in the same tick fails (atomicity)", async () => {
+    const schedule = await createSchedule(pool, "nightly-report", { n: 1 }, "*/5 * * * *");
+    await makeDue(pool, schedule.id);
+    // Corrupt the cron expression after creation (bypassing createSchedule's own validation)
+    // so computeNextRunAt() throws *after* enqueue() has already run inside the same
+    // transaction — proving the job insert rolls back along with everything else instead of
+    // being left committed as an orphan with no corresponding schedule advancement.
+    await pool.query("update schedules set cron_expr = 'not a cron expr' where id = $1", [
+      schedule.id,
+    ]);
+
+    await expect(tickScheduler(pool)).rejects.toThrow();
+
+    const jobCount = await pool.query("select count(*)::int as count from jobs");
+    expect(jobCount.rows[0].count).toBe(0);
+
+    const row = await pool.query("select last_job_id from schedules where id = $1", [schedule.id]);
+    expect(row.rows[0].last_job_id).toBeNull();
+  });
+
   it("never double-enqueues the same due schedule under concurrent ticks (SKIP LOCKED)", async () => {
     const schedule = await createSchedule(pool, "nightly-report", { n: 1 }, "*/5 * * * *");
     await makeDue(pool, schedule.id);

@@ -17,7 +17,11 @@ describe("runScheduler validation", () => {
     );
   });
 
-  it("throws synchronously on a non-integer limit", () => {
+  it("throws synchronously on a non-positive limit", () => {
     expect(() => runScheduler(fakePool(), { limit: 0 })).toThrow(/limit must be a positive integer/);
+  });
+
+  it("throws synchronously on a non-integer limit", () => {
+    expect(() => runScheduler(fakePool(), { limit: 1.5 })).toThrow(/limit must be a positive integer/);
   });
 });

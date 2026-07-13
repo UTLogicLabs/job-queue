@@ -1,9 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { enqueue, MAX_PAYLOAD_BYTES } from "../../src/enqueue.js";
 
-function fakePool(queryImpl: (sql: string, params: unknown[]) => Promise<{ rows: unknown[] }>) {
-  return { query: vi.fn(queryImpl) } as unknown as Pool;
+type QueryImpl = (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+
+function fakePool(queryImpl: QueryImpl) {
+  const query = vi.fn(queryImpl);
+  const client = { query, release: vi.fn() };
+  return { connect: vi.fn(async () => client), query } as unknown as Pool;
+}
+
+function fakeClient(queryImpl: QueryImpl) {
+  // A real PoolClient always has release() (that's precisely what distinguishes a checked-out
+  // client from a bare Pool for enqueue()'s isPool() check) — include it here too.
+  return { query: vi.fn(queryImpl), release: vi.fn() } as unknown as PoolClient;
 }
 
 function jobRow(overrides: Partial<Record<string, unknown>> = {}) {
@@ -46,8 +56,6 @@ describe("enqueue", () => {
     const pool = fakePool(() => {
       throw new Error("should not be called");
     });
-    // Buffer.byteLength(JSON.stringify({ data: "x".repeat(n) })) == n + '{"data":""}'.length,
-    // so pad data until the whole JSON string is exactly MAX_PAYLOAD_BYTES.
     const overhead = Buffer.byteLength(JSON.stringify({ data: "" }));
     const payload = { data: "x".repeat(MAX_PAYLOAD_BYTES - overhead) };
     expect(Buffer.byteLength(JSON.stringify(payload))).toBe(MAX_PAYLOAD_BYTES);
@@ -65,14 +73,20 @@ describe("enqueue", () => {
     expect(deduped).toBe(false);
   });
 
-  it("returns the inserted job on success", async () => {
-    const pool = fakePool(async () => ({ rows: [jobRow()] }));
+  it("returns the inserted job on success, wrapped in its own begin/commit", async () => {
+    const seen: string[] = [];
+    const pool = fakePool(async (sql) => {
+      seen.push(sql);
+      return { rows: [jobRow()] };
+    });
 
     const { job, deduped } = await enqueue(pool, "send-email", { to: "a@example.com" });
 
     expect(deduped).toBe(false);
     expect(job.id).toBe("1");
     expect(job.type).toBe("send-email");
+    expect(seen[0]).toBe("begin");
+    expect(seen.at(-1)).toBe("commit");
   });
 
   it("retries the insert if the in-flight conflict clears before the lookup runs", async () => {
@@ -97,5 +111,22 @@ describe("enqueue", () => {
     expect(deduped).toBe(false);
     expect(job.id).toBe("2");
     expect(insertCalls).toBe(2);
+  });
+
+  it("participates in an existing transaction when given a client instead of a pool", async () => {
+    const seen: string[] = [];
+    const client = fakeClient(async (sql) => {
+      seen.push(sql);
+      return { rows: [jobRow()] };
+    });
+
+    const { job } = await enqueue(client, "send-email", { to: "a@example.com" });
+
+    expect(job.id).toBe("1");
+    // No begin/commit of its own — only the savepoint dance around the insert attempt,
+    // leaving the outer transaction's begin/commit to the caller (e.g. tickScheduler).
+    expect(seen).not.toContain("begin");
+    expect(seen).not.toContain("commit");
+    expect(seen.some((sql) => sql.includes("savepoint"))).toBe(true);
   });
 });
