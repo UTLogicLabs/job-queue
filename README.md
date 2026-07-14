@@ -32,6 +32,24 @@ npm run dev           # workspace dev servers
 npm test              # unit + integration tests
 ```
 
+## Load test
+
+Proves exactly-once processing under concurrent, horizontally-scaled workers (per
+`docs/ARCHITECTURE.md`'s "Load test" section):
+
+```bash
+docker-compose up -d postgres
+npm run migrate
+docker-compose up -d --build --scale worker=10 worker scheduler
+
+npm run load-test     # seeds 50k jobs, hard-kills a worker mid-run, asserts exactly-once completion
+```
+
+`scripts/load-test.ts` truncates and seeds `JOB_COUNT` (default 50,000) jobs, polls until they're
+all processed, hard-kills one running `worker` container partway through to exercise the reaper's
+crash recovery, and fails loudly if any job doesn't complete exactly once. Set `SKIP_KILL=1` to
+run it as a plain throughput check without the crash-recovery step.
+
 ## Project layout
 
 ```
