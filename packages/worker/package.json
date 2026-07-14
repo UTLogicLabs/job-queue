@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "node --experimental-strip-types src/index.ts"
+    "dev": "node --experimental-strip-types --experimental-loader=../../scripts/ts-resolve-loader.mjs src/index.ts"
   },
   "dependencies": {
     "@job-queue/core": "*"

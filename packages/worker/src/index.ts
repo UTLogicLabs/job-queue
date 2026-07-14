@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import { createPool } from "@job-queue/core";
 import { createHandlerRegistry } from "./registry.js";
 import { runWorker } from "./runWorker.js";
@@ -13,13 +14,19 @@ if (!Number.isInteger(batchSize) || batchSize < 1) {
   throw new Error(`BATCH_SIZE must be a positive integer, got "${batchSizeEnv}"`);
 }
 
-const workerId = process.env.WORKER_ID ?? `worker-${process.pid}`;
+// Falls back to the container/host name, not the PID — every container's main process is PID 1,
+// so under `docker compose --scale worker=N` a PID-based default would collide across replicas.
+const workerId = process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`;
 
 const pool = createPool();
 const registry = createHandlerRegistry();
 
-// Real job-type handlers get registered here as job types are introduced in later stages,
-// e.g. registry.register("send-welcome-email", async (payload) => { ... }).
+// "task" is the generic job type used by the load test (see scripts/load-test.ts) to prove
+// exactly-once processing under concurrent workers. Real job-type handlers for actual product
+// work get registered here alongside it as they're introduced.
+registry.register("task", async () => {
+  await new Promise((resolve) => setTimeout(resolve, 5 + Math.random() * 20));
+});
 
 const handle = runWorker(pool, registry, { queues, batchSize, workerId });
 

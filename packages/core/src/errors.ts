@@ -6,8 +6,11 @@ export function isUniqueViolation(err: unknown, constraint?: string): boolean {
 }
 
 export class DuplicateCompletionError extends Error {
-  constructor(public readonly jobId: string) {
+  readonly jobId: string;
+
+  constructor(jobId: string) {
     super(`Job ${jobId} was already completed by another worker`);
     this.name = "DuplicateCompletionError";
+    this.jobId = jobId;
   }
 }

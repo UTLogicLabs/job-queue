@@ -18,7 +18,11 @@
     "test": "vitest run --project unit --project dashboard",
     "test:integration": "vitest run --project integration --no-file-parallelism",
     "migrate": "dotenv -e .env -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up",
-    "migrate:test": "dotenv -e .env.test -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up"
+    "migrate:test": "dotenv -e .env.test -- node-pg-migrate --migrations-dir db/migrations --migrations-table pgmigrations up",
+    "load-test": "dotenv -e .env -- node --experimental-strip-types --experimental-loader=./scripts/ts-resolve-loader.mjs scripts/load-test.ts"
+  },
+  "dependencies": {
+    "@job-queue/core": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
