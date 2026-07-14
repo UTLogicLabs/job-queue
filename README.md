@@ -22,7 +22,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
 npm install
 
 # start dev + test Postgres instances
-docker-compose up -d postgres postgres_test
+docker compose up -d postgres postgres_test
 
 # apply migrations
 npm run migrate       # dev database
@@ -38,9 +38,9 @@ Proves exactly-once processing under concurrent, horizontally-scaled workers (pe
 `docs/ARCHITECTURE.md`'s "Load test" section):
 
 ```bash
-docker-compose up -d postgres
+docker compose up -d postgres
 npm run migrate
-docker-compose up -d --build --scale worker=10 worker scheduler
+docker compose up -d --build --scale worker=10 worker scheduler
 
 npm run load-test     # seeds 50k jobs, hard-kills a worker mid-run, asserts exactly-once completion
 ```

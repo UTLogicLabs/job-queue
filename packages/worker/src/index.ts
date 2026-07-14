@@ -15,7 +15,7 @@ if (!Number.isInteger(batchSize) || batchSize < 1) {
 }
 
 // Falls back to the container/host name, not the PID — every container's main process is PID 1,
-// so under `docker-compose --scale worker=N` a PID-based default would collide across replicas.
+// so under `docker compose --scale worker=N` a PID-based default would collide across replicas.
 const workerId = process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`;
 
 const pool = createPool();
